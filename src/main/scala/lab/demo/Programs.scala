@@ -32,7 +32,7 @@ trait Simulation[R: ClassTag] extends App:
   val (width, height) = (1920, 1080)
 
   ViewSetting.windowConfiguration = WindowConfiguration(width, height)
-  ViewSetting.labelFontSize = 20
+  ViewSetting.labelFontSize = 30
   ScafiProgramBuilder(
     Random(nodes, width, height),
     SimulationInfo(implicitly[ClassTag[R]].runtimeClass, exportEvaluations = List(formatter_evaluation)),
@@ -47,6 +47,21 @@ trait AggregateProgramSkeleton extends AggregateProgram with StandardSensors:
   def sense3 = sense[Boolean]("sens3")
   def boolToInt(b: Boolean) = mux(b){1}{0}
 
+class Main extends AggregateProgramSkeleton:
+  def gradient(src: Boolean): Double = rep[Double](Double.PositiveInfinity): x =>
+    mux(src)(0.0):
+      minHoodPlus(nbr(x) + nbrRange)
+
+  def gradientPropagation(src: Boolean): Int =
+    rep[(Double, Int)]((Double.PositiveInfinity, mid)): p =>
+      mux(src)((0.0, mid)):
+        minHoodPlus:
+          (nbr(p._1) + nbrRange, nbr(p._2) + 1)
+    ._2
+
+  override def main() = gradientPropagation(sense1)
+
+object Demo extends Simulation[Main]
 
 class Main1 extends AggregateProgramSkeleton:
   override def main() = 1
@@ -71,14 +86,14 @@ class Main5 extends AggregateProgramSkeleton:
 object Demo5 extends Simulation[Main5]
 
 class Main6 extends AggregateProgramSkeleton:
-  override def main() = if (sense1) 10 else 20
+  override def main() = if sense1 then 10 else 20
 
 object Demo6 extends Simulation[Main6]
 
 class Main7 extends AggregateProgramSkeleton:
   override def main() = mid()
 
-object Demo7 extends Simulation[Main7]
+object DnbrRangeemo7 extends Simulation[Main7]
 
 class Main8 extends AggregateProgramSkeleton:
   override def main() = minHoodPlus(nbrRange)
@@ -103,7 +118,7 @@ object Demo11 extends Simulation[Main11]
 class Main12 extends AggregateProgramSkeleton:
   import Builtins.Bounded.of_i
 
-  override def main() = maxHoodPlus(boolToInt(nbr{sense1}))
+  override def main() = foldhood(false)(_ || _)(nbr{sense1})
 
 object Demo12 extends Simulation[Main12]
 
@@ -121,7 +136,7 @@ object Demo14 extends Simulation[Main14]
 
 class Main15 extends AggregateProgramSkeleton:
   override def main() = rep(Double.MaxValue):
-    d => mux[Double](sense1){0.0}{minHoodPlus(nbr{d}+1.0)}
+    d => mux[Double](sense1){0.0}{minHoodPlus(nbr{d}+nbrRange)}
 
 object Demo15 extends Simulation[Main15]
 
@@ -151,6 +166,7 @@ class Main19 extends AggregateProgramSkeleton with BlockT:
 object Demo19 extends Simulation[Main19]
 
 /*
-def gradient(source: Boolean, range: () => Double) = rep((Double.MaxValue, mid)):
-    d => mux[(Double, Int)](source){(0.0, mid)}{minHoodPlus( (nbr{d}._1 + range(), nbr{d}._2))}
+def gradientPropagation(source: Boolean) = rep((Double.MaxValue, mid)):
+    d => mux[(Double, Int)](source)((0.0, mid)):
+      minHoodPlus((nbr{d}._1 + nbrRange(), nbr {d}._2))
  */

@@ -82,48 +82,57 @@ object Demo4 extends Simulation[Main4]
 
 class Main5 extends AggregateProgramSkeleton:
   override def main() = sense1
+  //Se sei attivato dal sensore 1
 
 object Demo5 extends Simulation[Main5]
 
 class Main6 extends AggregateProgramSkeleton:
   override def main() = if sense1 then 10 else 20
+  //Se sei attivato dal sensore 1 mostri 10, altrimenti 20
 
 object Demo6 extends Simulation[Main6]
 
 class Main7 extends AggregateProgramSkeleton:
   override def main() = mid()
+//Mostro id punto
 
-object DnbrRangeemo7 extends Simulation[Main7]
+object Demo7 extends Simulation[Main7]
 
 class Main8 extends AggregateProgramSkeleton:
   override def main() = minHoodPlus(nbrRange)
+  //Minimo della distanza dei suoi vicini (esclusa la distanza da se stesso perchè uso plus)
 
 object Demo8 extends Simulation[Main8]
 
 class Main9 extends AggregateProgramSkeleton:
   override def main() = rep(0){_+1}
+  //Conto verso l'infinito
 
 object Demo9 extends Simulation[Main9]
 
 class Main10 extends AggregateProgramSkeleton:
   override def main() = rep(Math.random()){x=>x}
+  //Assegno un numero random a ogni nodo e lo mantengo
 
 object Demo10 extends Simulation[Main10]
 
 class Main11 extends AggregateProgramSkeleton:
   override def main() = rep[Double](0.0){x => x + rep(Math.random()){y=>y}}
+  //Aggiungo un numero random a ogni nodo, fino all'infinito
 
 object Demo11 extends Simulation[Main11]
 
 class Main12 extends AggregateProgramSkeleton:
   import Builtins.Bounded.of_i
 
-  override def main() = foldhood(false)(_ || _)(nbr{sense1})
+  override def main() = foldhoodPlus(false)(_ || _)(nbr{sense1})
+//Se sono nel vicinato di un punto che è sensore 1 vero, faccio l'or con il mio precedente stato
 
 object Demo12 extends Simulation[Main12]
 
 class Main13 extends AggregateProgramSkeleton:
   override def main() = foldhoodPlus(0)(_+_){nbr{1}}
+  //Conto quanti vicini ho, a parte me stesso
 
 object Demo13 extends Simulation[Main13]
 
@@ -131,26 +140,36 @@ class Main14 extends AggregateProgramSkeleton:
   import Builtins.Bounded.of_i
 
   override def main() = rep(0){ x => boolToInt(sense1) max maxHoodPlus( nbr{x}) }
+  //massimo tra se sono selezionato dal sensore 1 e massimo dei valori dei miei vicini
+  //quindi gossip, se io vengo selezionato tutti i miei vicini e i loro vicini lo sanno
 
 object Demo14 extends Simulation[Main14]
 
 class Main15 extends AggregateProgramSkeleton:
   override def main() = rep(Double.MaxValue):
     d => mux[Double](sense1){0.0}{minHoodPlus(nbr{d}+nbrRange)}
+    //Gradiente dal selezionato dal sensore 1
 
 object Demo15 extends Simulation[Main15]
 
 class Main16 extends AggregateProgramSkeleton:
-  override def main() =
+  override def main() = {
     branch(sense2)(Double.MaxValue)(
       rep(Double.MaxValue):
         d => mux[Double](sense1){0.0}{minHoodPlus(nbr{d}+nbrRange)}
     )
+    //Se sei selezionato dal sensore 2 double max value
+    //altrimenti esegui rep, parto da max value
+    //se sei selezionato da sensore 1 sei 0, altrimenti sei il gradiente al s1
+    //praticamente chi è s2 blocca la propagazione del gradiente
+    //s1 sorgente, s2 blocchi
+  }
 
 object Demo16 extends Simulation[Main16]
 
 class Main17 extends AggregateProgramSkeleton with BlockG:
   override def main() = gradientCast(source = sense1)(center = false)(accumulation = sense2 | _)
+  //Gradiente che dopo la rimozione di 1 torna a 0
 
 object Demo17 extends Simulation[Main17]
 
@@ -170,3 +189,21 @@ def gradientPropagation(source: Boolean) = rep((Double.MaxValue, mid)):
     d => mux[(Double, Int)](source)((0.0, mid)):
       minHoodPlus((nbr{d}._1 + nbrRange(), nbr {d}._2))
  */
+//My exercises
+class Main20 extends AggregateProgramSkeleton with BlockT:
+  override def main() = branch(sense1) (rep(0){
+    x=>
+      if x<1000 then x+1 else x
+  })(0)
+    //where sense1 is active count from 0 to 1000 and then stay freezed at 1000, otherwise 0
+    //⇒ use mux externally, see what happens with multiple clicks, and then use branch instead
+  //If you use mux, count goes up even without sense 1, otherwise with branch you can see the counting going up
+object Demo20 extends Simulation[Main20]
+
+class Main21 extends AggregateProgramSkeleton with BlockT:
+  override def main() = foldhoodPlus(Set[ID]()) (_++_){Set(nbr(mid()))}
+//gather in each node the set of neighbours’ IDs..
+//⇒ used foldhood, help type inference (it’s a Set[ID])
+
+  //Add sets of neighbours ids
+object Demo21 extends Simulation[Main21]
